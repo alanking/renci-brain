@@ -1,0 +1,32 @@
+#!/bin/bash
+
+########################
+# iRODS Build-a-Bear v4
+# Save as ~/bin/syncbuildabear
+########################
+
+BUILDHOST=build-ub12.irods.renci.org
+SOURCEPATH=/home/$USER/irods
+TARGETPATH=/projects/irods/personal-testing-repos/$USER/irods
+
+echo "Syncing irods to $BUILDHOST..."
+rsync -rlt --delete $SOURCEPATH/.git/ $USER@$BUILDHOST:$TARGETPATH/.git/
+echo "------ Build-a-Bear Parameters ------"
+echo $TARGETPATH
+cd $SOURCEPATH
+git rev-parse HEAD
+
+##############
+
+BUILDHOST=build-ub12.irods.renci.org
+SOURCEPATH=/home/$USER/repos/irods_client_icommands
+TARGETPATH=/projects/irods/personal-testing-repos/$USER/irods_client_icommands
+
+echo "Syncing irods_client_icommands to $BUILDHOST..."
+rsync -rlt --delete $SOURCEPATH/.git/ $USER@$BUILDHOST:$TARGETPATH/.git/
+echo "------ Build-a-Bear Parameters ------"
+echo $TARGETPATH
+cd $SOURCEPATH
+git rev-parse HEAD
+
+

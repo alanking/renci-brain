@@ -1,0 +1,23 @@
+#!/usr/bin/fish
+
+########################
+# iRODS Build-a-Bear v5
+# Save as ~/bin/synccurrent_to_buildabear
+########################
+
+set REPONAME (basename $PWD)
+set BUILDHOST build-ub12.irods.renci.org
+set SOURCEPATH /home/$USER/projects/irods/irods-dev-package/$REPONAME
+set TARGETPATH /projects/irods/personal-testing-repos/$USER/$REPONAME
+
+if test ! -d "$TARGETPATH"
+  echo "target does not exist, try:"
+  echo "  $BUILDHOST> sudo su - irodsbuild -c 'mkdir -p $TARGETPATH; chmod -R 775 $TARGETPATH'"
+  exit 1
+end
+echo "Syncing $REPONAME to $BUILDHOST..."
+rsync -rlt --delete $SOURCEPATH/.git/ $USER@$BUILDHOST:$TARGETPATH/.git/
+echo "------ Build-a-Bear Parameters ------"
+echo $TARGETPATH
+cd $SOURCEPATH
+git rev-parse HEAD

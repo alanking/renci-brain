@@ -1,0 +1,23 @@
+#!/bin/bash
+
+########################
+# iRODS Build-a-Bear v5
+# Save as ~/bin/synccurrent_to_buildabear
+########################
+
+REPONAME=$(basename $PWD)
+BUILDHOST=build-ub12.irods.renci.org
+SOURCEPATH=/home/$USER/repos/$REPONAME
+TARGETPATH=/projects/irods/personal-testing-repos/$USER/$REPONAME
+
+if [ ! -d "$TARGETPATH" ] ; then
+  echo "target does not exist, try:"
+  echo "  $BUILDHOST> sudo su - irodsbuild -c 'mkdir -p $TARGETPATH; chmod -R 775 $TARGETPATH'"
+  exit 1
+fi
+echo "Syncing $REPONAME to $BUILDHOST..."
+rsync -rlt --delete $SOURCEPATH/.git/ $USER@$BUILDHOST:$TARGETPATH/.git/
+echo "------ Build-a-Bear Parameters ------"
+echo $TARGETPATH
+cd $SOURCEPATH
+git rev-parse HEAD
