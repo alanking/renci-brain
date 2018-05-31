@@ -1,0 +1,54 @@
+Fire off two threads at the same time to perform the iput. Sometimes t1 wins, sometimes t2 wins.
+Sometimes, one or the other wins, but you get a CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME for the loser.
+This seems to indicate that they got there at just the right time such that they both try to do a clean put and one fails the catalog registration because the other got there first.
+
+
+
+SANGER:
+Try running on two icats
+    > via federation
+Try running with baton
+Try running on resource server?
+
+Check logging in dynamic peps?
+    > Going through baton, any rogue PEPs would probably be pre-API
+    > pep_database_reg_replica_pre
+    > The idea is that we will see the context for the request in the pre-PEP for registering hte replica
+Baton does this:
+    > put is called by baton if the file is large enough (for a certain definition of large)
+    > smaller files do open->write->close
+
+Add some stuff to a debug RE for Sanger to find the second, rogue PID creating the surprise replica.
+
+
+-----
+
+If we get multiple zero length files, do another baton-put to the same place
+    > Maybe want to queue up both of them
+
+
+
+----
+
+Put some logging in the voting logic for the repl node
+pep_resolve_resource_hierarchy_pre
+    > KVPairs
+
+Go to resolve-resource_hierarchy - file object factory
+    > Does that find anything in the catalog?
+
+Put a stat for a repl in that branch in the repl node before calling rsDataObjRepl
+    > Check to see if a replicaiton is already in the tree
+    > If so, log everything you possibly can and bail/get out/do not repl/do not pass go
+
+
+Line numbers for vim plugin thing
+
+
+iput with --wlock is a write lock; makes things "copacetic", so the race condition is handled, but all the replicas are marked stale
+    > This indicates a race condition in the writing of the flies
+
+Big question: How can we trace back the multiple put situation to Sanger's actual scenario?
+    > Adding Sanger debug server config option - prevent bouncing server to turn on logging (which is normally required)
+    > When performing the replicas, we check for the flag. rscomm_->option... check if baton is setting this option
+    > Could print out client host information - user info, proxy user info, etc.

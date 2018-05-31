@@ -1,0 +1,30 @@
+All the notes from roguespace have been lost :(
+
+mungefs requires irods-externals-* and irods-dev in order to build
+mungefs implements a FUSE filesystem
+./mungefs </path/to/mountpoint> -omodules=subdir,subdir=</target/directory> -oallow_other
+    text in <> should be replaced with your inputs; the rest is literal
+    Not sure if -oallow_other is needed, but I needed it to get this to work at first
+    The -oallow_other flag may require root
+See https://github.com/irods/mungefs for more info on using this
+
+
+Now, we need to see if the verification step will help in the replication process while mungefs is dorking around with stuff
+
+help@renci.org to request a name
+    > we want roguespace.europa.renci.org
+
+
+TriRODS - storage tiering capability
+
+capture majority of use cases
+packaged and versioned
+configurations, not code
+storage tiering capability is driven by metadata in the root resource above different... storage tiers
+    attribute identifies group participant
+    value defines group name
+    unit defines position within the group
+also have time constraints which can be configured with a different attribute (metadata)
+another configuration for verification run against the destination replica via filestat and comparing file sizes
+    verifying checksum will trigger a checksum calculation if none is present
+

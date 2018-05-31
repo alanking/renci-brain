@@ -1,0 +1,88 @@
+https://plato.stanford.edu/entries/turing-machine/
+
+Turing Machines:
+
+Has 2 things:
+1. "Tape" which starts and stretches infinitely to the right with cells arranged left-right; can contain '0' or '1'
+2. Read-write head which is scanning cells; can move left or right
+
+The machine can take an action based on:
+1. State of the machine
+2. Symbol in the cell currently being scanned by the head
+3. Table of transition rules (composes the program)
+
+Actions of the machine:
+1. Move head left: <<
+2. Move head right: >>
+3. Write symbol
+
+Transition rule:
+    {State<current>, Symbol, State<next>, Action}
+"If the state machine is in state State<current> and the cell being scanned contains Symbol, then move into state State<next> taking Action".
+If the machine reaches a situation where there is no unique transition rule to execute (i.e. none, or more than 1), it halts.
+
+"Standard configuration" means that the head is at the first '1' on a tape in a contiguous block of '1', preceded by a '0'.
+
+Addition machine: n+m
+
+A number x is represented by x+1 '1' and a '0' between two contiguous blocks of '1' is the break.
+
+{s0,1,s0,>>}
+{s0,0,s1,1}
+{s1,1,s1,<<}
+{s1,0,s2,>>}
+{s2,1,s2,0}
+{s2,0,s3,>>}
+{s3,1,s3,0}
+{s3,0,s4,>>}
+
+Example: 2+2
+
+|0|1|1|1|0|1|1|1|0|   <-- s0
+ ^
+|0|1|1|1|0|1|1|1|0|   <-- s0
+   ^   
+|0|1|1|1|0|1|1|1|0|   <-- s0
+     ^   
+|0|1|1|1|0|1|1|1|0|   <-- s0
+       ^   
+|0|1|1|1|0|1|1|1|0|   <-- s0
+         ^   
+|0|1|1|1|1|1|1|1|0|   <-- s1
+         ^   
+|0|1|1|1|1|1|1|1|0|   <-- s1
+       ^   
+|0|1|1|1|1|1|1|1|0|   <-- s1
+     ^   
+|0|1|1|1|1|1|1|1|0|   <-- s1
+   ^   
+|0|1|1|1|1|1|1|1|0|   <-- s1
+ ^
+|0|1|1|1|1|1|1|1|0|   <-- s2
+   ^   
+|0|0|1|1|1|1|1|1|0|   <-- s2
+   ^   
+|0|0|1|1|1|1|1|1|0|   <-- s3
+     ^   
+|0|0|0|1|1|1|1|1|0|   <-- s3
+     ^   
+|0|0|0|1|1|1|1|1|0|   <-- s4
+       ^   
+
+Making the tape infinite in both directions does not increase the number of functions that could be computed.
+Adding more read-write heads does not increase the number of functions that could be computed.
+Adding multiple tapes is equivalent to the original formulation.
+Adding a second dimension to the tape (up and down) is equivalent to the original.
+Arbitrary movement of read-write head is equivalent to the original.
+Allowing more symbols in the alphabet does not increase Turing-computability.
+Allowing the machine to write and move in the same transition is still equivalent.
+
+Originally, the machine would halt if there was more than one transition. In non-deterministic Turing machines, all transitions are taken.
+The resulting computations are continued in parallel. If any of them completes successfully, the entire computation terminates, and the result from that particular computation is taken.
+In this configuration, some states are designated as accepting states. This means that the computation will terminate if it ends in one of these states.
+
+
+
+---
+
+Why does ub14-mysql finish in almost 4 hours? Everything else takes significantly longer for some reason

@@ -1,0 +1,9 @@
+Phone interview Wednesday
+
+When adding ssh keys for github, try just running ssh-add intead of ssh-add <id_rsa path>. Was having problems with the latter command
+
+Also, reminder that you can rearrange commit ordering in git rebase -i. "reword" command is your friend
+
+---
+
+Prioritize #3503 over #3419 in 4.1.x

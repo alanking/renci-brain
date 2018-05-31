@@ -1,0 +1,13 @@
+Once CI/VM configs are fixed, run build hook through Jenkins
+
+If you run iput on a resource that does not exist, it produces a silent failure
+
+
+chlrollback in the data object replication
+if this were to run on a resource, would probably be fine, but since running from icat, we hit the failure
+before  bailing from the failure, it's not cleaning up the statement table
+    look for options in genquery
+    
+figure out which statements are getting leaked (if any)
+    Bumping up the max number of statements seems to fix the issue
+    ...but why is it getting overloaded in the first place??

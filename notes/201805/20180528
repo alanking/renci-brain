@@ -1,0 +1,11 @@
+http://172.25.14.125:8080/job/rule-engine-plugin-python-build-test-workflow/38/flowGraphTable/
+
+Think I might have found the shmem culprit...  test_writeLine_config_first_3477 and  test_writeLine_config_last_3477
+
+These tests inesrt the native REP before and after the python REP, respectively, and then execute a native rule. Not sure how that works for python, but apparently it does.
+Anyway, the shared memory instance is instantiated outright in these tests, so maybe these are the only ones that need to be skipped?
+Let's try a build where we ONLY skip these tests for python REP. This could eliminate the need to skip anything else.
+    Nevermind, you need to skip the ones that python REP does not support. Afterall, that's why we are doing it in the first place. The issue comes in with the rearranging.
+    So try removing the rearranging and just add the extra skips and/or server bounces to ensure that the shmem is destroyed.
+
+The problem seems to be that the shmem is instatiated via the configuration of 

@@ -1,0 +1,26 @@
+procApiRequest retry:
+    if ( parallel ) {
+        return error // side effect: orphaned remote agents
+    }
+    if ( connection failed ) {
+        reconnect and try on different socket
+    }
+    else {
+        try again on same socket
+    }
+
+This could be:
+
+    if ( parallel ) {
+        return error
+    }
+
+    if ( connection failed ) {
+        reconnect (use different socket on conn)
+    }
+
+    try again with conn (could have different or same socket)
+
+
+make build hook for mungefs
+install irods_python_ci_utilities python package

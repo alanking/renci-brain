@@ -1,0 +1,298 @@
+Sanger'd a lot, cannot reproduce issue despite mostly reproducing environment
+
+J
+alan....
+i have a theory wrt sanger multi repl
+so.  there are two votes in the repl node.  one for write and one for read or whatever the operation is.
+let us consider a very deep tree with many repl nodes.
+the first vote is for a write and we generate a map of accepting nodes.
+the second vote happens for also a write/create.  we do not use that map but we do use the hier parser chosen to accept the first repl.
+there could be a possibility where the first accepting hier is not in the write pool so we have a left over voted hier accepting a replica.
+the error is in that the hier accepting the first write is chosen from the second voting pool and not the one used for the write pool.
+so the first pool which is used for repls is not  properly trimmed down with the fcn: replCreateChildReplList
+so the fix would be to use the hier parser generated from that fcn for replication and not the second used for open.
+imagine red wins on the first vote and is removed and the same happens on the second vote.  you get two in green.
+
+T
+Sanger doesn’t have a repl in repl? They have random in random in repl.
+
+J
+doesnt matter i imagine
+
+T
+So we’ve got their hierarchy in Alan’s computer. All local, and never any triples. But we did see the reuse of the replication target in the same connection.
+This suggests the topology somehow matters.
+Because it got redirected AND is reusing the connection...
+
+J
+yes but a code inspection suggests if the database spits out “out of order” resources it can happen
+also oracle not postgres
+
+T
+Let’s hope not.
+On the oracle being that different.
+Need more sort
+
+J
+so harrys bug lands a repl in red and my big lands two in green
+and he keeps landing the first repls in red and occasionally mine lands two in green
+i have not reproduced the thing this is via code inspection
+but the connection needs held open so harrys chosen resc hier never expires which gives us the first repl in green for instance
+and if the write/create votes also yield a repl in green we end up with two in the green branch, not a balanced repl.
+so a few things need to happen.
+    1. we need to always do all the voting.
+    2. the chosen hier for the write needs honored from the first vote
+    3. we should torch all the maps and parsers out of the properties after all the things are done.
+
+T
+so do you think we can reproduce/trap this error on a single computer?
+
+J
+i don't see why not
+the behavior should always be the same.  only the rsFile* operations are redirected.
+
+T
+What do we build to see three replicas with a recursive iput?
+We have a nested tree. We have iput -r.
+
+J
+putDirUtil calls putFileUtil which calls rcDataObjPut so we can do a lot of puts with a single connection
+large files?
+probably shouldn't matter
+also different database?
+is seq zone on oracle or postgres?
+ah.
+the reason is we do not have enough churn in the system to affect the voting
+
+T
+testing large file recursive put to deep tree now.
+
+J
+a thing that would make a green resource win over a red resc for this partcular moment.
+put passthrus in above the first randoms
+let it get going and tweak the weights
+to simulate churn in the leaves
+the database thing is a red herring due to the fact that there is one fetch from the catalog for resources so always the same order
+
+T
+we're trying to break alan's computer
+
+J
+a fine thing to do
+again
+if you log the hier for the first repl and the second repl and the repls in both maps does the theory hold up?
+if the connection is held open, after the first vote write_child_list_prop is locked in and the child list is never updated.
+do we have the output of the kj's baton put?  i am curious if they were also always to the same resources
+
+---
+If the weights change in the middle of a connection, the current logic dictates that nothing will change later on because we are not going back to the catalog.
+Investigate possible counter/timer to go back to the database and rebuild the tree. Property map refresh connection something something
+
+
+--
+
+
+#3904 describes a problem where replication to a random node is not really random for multiple puts in a single connection. The initial put is random, but the replication operation is pre-determined and will go to the same resource every time.
+This can be solved by not re-using the write_child_list when fetching replication targets.
+Another problem has been identified. If a random node has two children and one is not accepting writes (marked down, write=0.0) when the operation begins, that child will not receive any replicas, even if it comes back before the operation is completed.
+This is because only one fetch from the database happens to determine the pool of replica targets. It will not be made aware of any updates that may occur in the database (i.e. mark status up, write > 0.0)
+
+----
+
+Theory: 
+
+Two votes in the repl node: one for write and one for read/whatever the operation is.
+Suppose we have a tree with many repl nodes.
+First vote is for a write - generates a map of accepting nodes (leaves). This will determine the "selected" node for the put.
+Second vote is also for a write/create - generate a new map using the same hier parser?
+
+Possibility:
+    First accepting hier (the chosen child?) is not in the write pool (write = 0.0) so we have an extra chosen hierarchy accepting a replica (needs to be trimmed down by replCreateChildReplList, but is not).
+
+Fix:
+    Use the hier parser generated in replCreateChildReplList for the replication, not the second one used for open(?)
+
+
+---
+If you force put a file when one of the recipients has write = 0.0, the replica updating seems random??
+It's not random - if the first replicas is updated, the second will not be. And vice versa. Weeeeeird.
+
+> iput -R root -r testdir
+> ils -l testdir
+/tempZone/home/rods/testdir:
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0    104857600 2018-04-26.13:11 & test0
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:11 & test0
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0    104857600 2018-04-26.13:11 & test1
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:11 & test1
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0    104857600 2018-04-26.13:12 & test2
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test2
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.13:12 & test3
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test3
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1    104857600 2018-04-26.13:12 & test4
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test4
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.13:12 & test5
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test5
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0    104857600 2018-04-26.13:12 & test6
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test6
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1    104857600 2018-04-26.13:11 & test7
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:11 & test7
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0    104857600 2018-04-26.13:12 & test8
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test8
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.13:12 & test9
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test9
+> iadmin modresc pt-red0 context "write=0.0"
+> iput -fR root -r testdir
+> ils -l testdir
+/tempZone/home/rods/testdir:
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0    104857600 2018-04-26.13:12 & test0
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:11   test0
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0    104857600 2018-04-26.13:11   test1
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test1
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0    104857600 2018-04-26.13:12 & test2
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12   test2
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.13:12   test3
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test3
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1    104857600 2018-04-26.13:12 & test4
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12   test4
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.13:12   test5
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test5
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0    104857600 2018-04-26.13:12   test6
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test6
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1    104857600 2018-04-26.13:12 & test7
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:11   test7
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0    104857600 2018-04-26.13:12 & test8
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12   test8
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.13:12   test9
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.13:12 & test9
+^
+|_ #3541!!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/tempZone/home/rods/testdir:
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1    104857600 2018-04-26.16:05 & test0
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.16:05 & test0
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.16:05 & test1
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1    104857600 2018-04-26.16:05 & test1
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.16:05 & test2
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0    104857600 2018-04-26.16:05 & test2
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.16:05 & test3
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1    104857600 2018-04-26.16:05 & test3
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.16:05 & test4
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0    104857600 2018-04-26.16:05 & test4
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1    104857600 2018-04-26.16:05 & test5
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0    104857600 2018-04-26.16:05 & test5
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1    104857600 2018-04-26.16:05 & test6
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0    104857600 2018-04-26.16:05 & test6
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0    104857600 2018-04-26.16:05 & test7
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1    104857600 2018-04-26.16:05 & test7
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0    104857600 2018-04-26.16:05 & test8
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1    104857600 2018-04-26.16:05 & test8
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1    104857600 2018-04-26.16:05 & test9
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0    104857600 2018-04-26.16:05 & test9
+
+
+
+Apr 26 16:05:46 pid:5261 NOTICE: Agent process 5612 started for puser=rods and cuser=rods from 152.54.8.76
+Apr 26 16:05:46 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:46 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:46 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0]
+Apr 26 16:05:46 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1]
+Apr 26 16:05:46 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:46 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1]
+Apr 26 16:05:46 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1]
+Apr 26 16:05:47 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:47 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:47 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0]
+Apr 26 16:05:47 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1]
+Apr 26 16:05:47 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:47 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0]
+Apr 26 16:05:47 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1]
+Apr 26 16:05:48 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1]
+Apr 26 16:05:48 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs0]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1]
+Apr 26 16:05:48 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0]
+Apr 26 16:05:49 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:49 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:49 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0]
+Apr 26 16:05:49 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0]
+Apr 26 16:05:49 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:49 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1]
+Apr 26 16:05:49 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1]
+Apr 26 16:05:50 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs1]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0]
+Apr 26 16:05:50 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1]
+Apr 26 16:05:50 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0]
+Apr 26 16:05:51 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:51 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:51 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1]
+Apr 26 16:05:51 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs1]
+Apr 26 16:05:51 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:51 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0]
+Apr 26 16:05:51 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green1;green1;green1ufs0]
+Apr 26 16:05:52 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red0;red0;red0ufs1]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0]
+Apr 26 16:05:52 pid:5612 NOTICE: writeLine: inString = writing to root
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs1]
+Apr 26 16:05:52 pid:5612 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0]
+Apr 26 16:05:53 pid:5612 NOTICE: readAndProcClientMsg: received disconnect msg from client
+Apr 26 16:05:53 pid:5612 NOTICE: Agent exiting with status = 0
+Apr 26 16:05:53 pid:5261 NOTICE: Agent process 5612 exited with status 0
+
+
+
+
+
+

@@ -1,0 +1,50 @@
+> ilsresc
+demoResc
+repl:replication
+├── ufs1
+└── ufs2
+> iput -R repl VERSION.json
+> ils -L
+/tempZone/home/rods:
+  rods              0 repl;ufs2          481 2018-05-02.11:31 & VERSION.json
+        generic    /tmp/ufs2vault/home/rods/VERSION.json
+  rods              1 repl;ufs1          481 2018-05-02.11:31 & VERSION.json
+        generic    /tmp/ufs1vault/home/rods/VERSION.json
+> rm /tmp/ufs1vault/home/rods/VERSION.json
+> iscan /tmp/ufs1vault/home/rods/VERSION.json
+ERROR: scanObj: /tmp/ufs1vault/home/rods/VERSION.json does not exist
+> echo $?
+184
+> iscan -rd /tempZone/home/rods
+Physical file /tmp/ufs1vault/home/rods/VERSION.json on server EMPTY_RESC_HOST is missing, corresponding to iRODS object /tempZone/home/rods/VERSION.json
+> echo $?
+94
+
+-----------------------------
+
+> ils -L
+/tempZone/home/rods:
+  rods              0 repl;ufs2          481 2018-05-02.11:36 & VERSION.json
+        generic    /tmp/ufs2vault/home/rods/VERSION.json
+  rods              1 repl;ufs1          481 2018-05-02.11:36 & VERSION.json
+        generic    /tmp/ufs1vault/home/rods/VERSION.json
+  rods              0 repl;ufs2           20 2018-05-02.11:36 & VERSION.tmp
+        generic    /tmp/ufs2vault/home/rods/VERSION.tmp
+  rods              1 repl;ufs1           20 2018-05-02.11:36 & VERSION.tmp
+        generic    /tmp/ufs1vault/home/rods/VERSION.tmp
+> iscan -rd /tempZone/home/rods
+> iscan -r /tmp/ufs2vault
+> iscan -r /tmp/ufs1vault
+/tmp/ufs1vault/extrafile is not registered in iRODS
+> echo $?
+192
+> rm -f /tmp/ufs2vault/home/rods/VERSION.tmp
+alanking@roguespace ~/p/i/irods-4.1.x (3904.4-1-stable|✚1…)> iscan -rd /tempZone/home/rods
+Physical file /tmp/ufs2vault/home/rods/VERSION.tmp on server EMPTY_RESC_HOST is missing, corresponding to iRODS object /tempZone/home/rods/VERSION.tmp
+> echo $?
+94
+> iscan -r /tmp/ufs1vault
+/tmp/ufs1vault/extrafile is not registered in iRODS
+> echo $?
+192
+

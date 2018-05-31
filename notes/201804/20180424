@@ -1,0 +1,13 @@
+truncate cram file:
+    truncate -s 1.4 GB 25375_1#0.cram
+
+directory:"/tmp/batontest/"
+file:"25375_1#0.cram"
+collection:"/tempZone/home/rods/wlock_test"
+data_object:"25375_1#0.cram"
+
+
+
+
+Need to reproduce Sanger tree
+

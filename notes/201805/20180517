@@ -1,0 +1,52 @@
+Looking at #3711 "reversion"
+
+packStruct has a few potential status checks that need to be handled
+
+libpam missing status checks
+
+
+Not done
+    Revisit
+        DONE!
+
+Definitely:
+        plugins/auth/pam/libpam.cpp
+    plugins/database/src/db_plugin.cpp
+        plugins/database/src/general_query.cpp
+        server/api/src/rsChkObjPermAndStat.cpp
+        server/api/src/rsDataObjCopy.cpp
+        server/api/src/rsDataObjPhymv.cpp
+        server/api/src/rsDataObjPut.cpp
+        server/api/src/rsDataObjRepl.cpp
+        server/api/src/rsDataObjUnlink.cpp
+        server/api/src/rsPhyPathReg.cpp
+        server/api/src/rsRmColl.cpp
+        server/api/src/rsRuleExecDel.cpp
+server/core/src/collection.cpp
+    server/core/src/initServer.cpp
+        server/core/src/irods_server_control_plane.cpp
+        server/core/src/objMetaOpr.cpp
+        server/core/src/physPath.cpp
+    server/core/src/rodsAgent.cpp
+    server/core/src/rodsConnect.cpp
+        server/re/src/reSysDataObjOpr.cpp
+
+Maybe:
+lib/core/src/packStruct.cpp
+    > packStruct is kind of a mess
+plugins/database/src/low_level_odbc.cpp
+    > cllFreeStatement - "Nothing to do if it fails"
+plugins/database/src/mid_level_routines.cpp
+    > cllFreeStatement - "Nothing to do if it fails"
+plugins/rule_engines/irods_rule_engine_plugin-irods_rule_language/functions.cpp
+    > newRes is being called to init r, but what should we do with return value?
+    > pattern should be declared/initialized on same line
+server/re/src/extractAvuMS.cpp
+
+No:
+lib/core/src/rcMisc.cpp
+plugins/resources/nonblocking/libnonblocking.cpp
+server/api/src/rsQuerySpecColl.cpp
+server/core/src/xmsgLib.cpp
+
+-----

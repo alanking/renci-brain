@@ -1,0 +1,23 @@
+When using the updateRepl= keyword, it is expected that missing replicas, not just stale replicas, are updated.
+
+This was noticed after a replica under a replication resource was trimmed within a rule, and then tried to be overwritten or appended - with no effect. There remained only a single replica.
+
+This was reproduced with itrim and irepl -U from the command line.
+
+
+
+
+
+
+So is the idea that the physical file is missing? Updating a replica that has been removed from iRODS is impossible.
+i.e. how can we know if a replica is supposed to exist if it's not in the catalog?
+
+So this must refer to missing physical files
+
+
+
+
+...no, it has to do with replication resource
+
+Also, is this the same issue as not being able to irepl to a replication resource?
+It's not replicating the write operation, but this sure seems like the same issue...

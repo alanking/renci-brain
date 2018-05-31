@@ -1,0 +1,58 @@
+Looking at iscan in a resource hierarchy today
+
+RESC_HIER == full hierarchy
+RESC_NAME == root resc in hierarchy
+    > need to change this to the leaf resc
+
+Approach 1: find hostname based on resc_name associated with data_path that actually stores the data (leaf node)
+    > this will require writing out the correct resc_name since it is already stored as the root resc
+    > when should that happen?? rebalance?
+
+Approach 2: Get the hierarchy for  the data_path and chop the leaf, feed back into query for hostname, feed back into query for data_id
+    > If you feed the whole resc_hier to a select of resc_loc, you still get "no host" (still using root resc)
+    > chopping the leaf rquires string manipulation after a database hit, implying two database hits
+
+    select data_id where (select 
+
+select data_id where data_path = blah and resc_hier like ('%;<LEAF1>' || '%;<LEAF2>' || ... || '%;<LEAFn>' )  where LEAFn == select RESC_NAME where RESC_LOC like <hostname> or RESC_LOC = <hostname>
+
+Gather all the resource names for the given host (should all be leaves)
+Find the hierarchy for the one we want by filtering by data_path?
+    for each leaf in results:
+        where resc_hier like '%;leaf'
+        if result:
+            break
+would still need two database hits to get the results and form the query
+
+Might actually need 3 hits:
+    1. Get select RESC_NAME where RESC_LOC = <hostname>
+    2. Get select RESC_HIER where RESC_HIER like '%;genQueryOut[0]' or RESC_HIER like '%;genQueryOut[1]' ...
+    3. Get select DATA_ID where DATA_PATH = <path> and RESC_HIER = genQueryOut[0]
+
+Apparently, RESC_NAME where RESC_LOC = <hostname> doesn't always return all the results...
+
+
+Approach 3: Require/allow specification of resource name, hostname, etc. from user?
+    resource name provision would allow for:
+        select data_id where data_path = blah and resc_hier like '%;<user_provided_resc_name>'
+    downsides: requires user to know the resource tree
+                maybe this is okay since iscan is kind of an admin-y type operation anyway?
+
+Approach 4: Return list of results and show in output rather than 
+
+
+When Sanger upgrades to 4.2.x, aren't they going to have issues with this again?
+The resc_name associated with existing data objects is going to be the root resource unless it gets updated...
+
+
+Need tests for:
+    > hierarchy with multiple children and replicas
+    > multiple hosts with the same path (as well as the data_path matching none of the existing registered copies)
+    > registered copies not in a vault
+
+What happens if you register a file with a path identical to an existing file on a different host to the same resource?
+Can you even scan an object that resides on a remote machine? I think the answer is no
+    So, any object you are running iscan on must be on the machine to which the client is connected.
+    How do we know which machine the client is connected to? Can this be changed/configured by an admin somewhere? (more complications to consider)
+Test for recursive iscan -- currently untested
+Does iscan work across zones? Does it need to?

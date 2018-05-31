@@ -1,0 +1,16 @@
+Spent most of the day on the numeric_cast issue -_-
+Created test for exceedingly large value of delay in seconds
+
+Started #3848
+
+Fails as expected (too many replicas)
+The tree looks like this:
+
+repl
+|____unixA
+|____random
+     |____unixB1
+     |____unixB2
+
+Expecting 2 replicas, but we get 3
+Replica from first put is stale, but the other two have '&'

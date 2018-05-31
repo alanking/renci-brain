@@ -1,0 +1,15 @@
+4.1.12:
+3265 - ichksum admin mode
+3436 - replication retry
+3419 - iscan in resource hierarchies
+3904 \___make replication resource consistent
+3909 /
+3928 - root dir
+3927 - ~enhanced logging~
+
+
+
+---
+
+So we want to recreate missing replicas when performing an update or append on a data object.
+e.g. msiDataObjWrite or irepl -U

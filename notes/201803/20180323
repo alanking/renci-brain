@@ -1,0 +1,28 @@
+bundle extract is not taking the same path as put for registering files
+The data mode appears to be missing from the data object information
+iput get the data mode on file creation from the rcDataObjCreateAndStat
+
+
+
+regUnbunSubfiles
+
+
+ibun can be done in bulk, so make sure to account for that path too
+    > bulk path is already including dataMode...
+    > Write tests for it anyway
+
+
+Okay, fixed Bob's issue. That was fun
+
+------
+
+
+Back to #3848
+
+iput -f will only update a single replica (and the others lose their &)
+    On testing this, I do not agree with this assertion.
+
+EXPECTATION:
+    If the user does an iput -f into the repl resc and tehre is no replica registered in the catalog, then we should not replicate
+    Leaf bundles are needed to look for replicas in the tree
+

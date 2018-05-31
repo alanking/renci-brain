@@ -1,0 +1,42 @@
+Want to error for '/' on resource create
+
+base64 --decode can decode things that are encoded in base64
+
+
+When the agent starts up, it reads all the environment information every single time. The client information should be included.
+What if we made an object for logging that gets constructed on agent standup and gets the context information. Then, rodsLog can be modified to print out the extra information that is being stored in the object.
+What should the object look like? Should be very simple:
+
+    class verbose_logger {
+        public:
+            verbose_logger(env_info?& _ctx)
+                : _log_level(LOG_NOTICE) {
+                message_ = (boost::format(
+                            "client name:[%s],client addr:[%s],agent PID:[%s],agent host:[%s]") %
+                            _ctx.client_name % _ctx.client_addr % _ctx.agent_pid % _ctx.agent_host).str()
+            }
+            virtual ~verbose_logger() {}
+
+            void log() {
+                rodsLog(this.log_level(), this.message().c_str()); 
+            }
+
+            const rodsLong? log_level() const { return log_level_; }
+            const std::string& message() const { return message_; }
+
+            void log_level(const rodsLong _log_level) { log_level_ = _log_level; }
+
+        private:
+            rodsLong? log_level_;
+            std::string message_;
+    }
+
+----
+Need to add the new setting. When this is read
+
+Could we store vault paths in the catalog as base64? see std::filesystem::path
+
+
+
+proxy
+client username

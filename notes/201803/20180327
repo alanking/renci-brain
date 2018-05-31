@@ -1,0 +1,17 @@
+hierarchy_parser appears to be the way to iterate over the list of children...?
+
+for ( resc_list_t::const_iterator itr = resc_list_.begin(); !result && itr != resc_list_.end(); ++itr )
+
+So we want to confirm that there are no replicas registered in the catalog...
+But why can't we just assume that it exists based on the data object creation logic?
+What exactly does Jason mean by "no replica registered in the catalog"? A newly created data object? Or just that there are no replicas/COPIES? 
+Looks like we will need to generate a query like the following?
+
+select DATA_ID where DATA_RESC_HIER like <resc_hier> || <resc_hier> || ... for all leaves
+
+And if anything comes back, then we're good...?
+
+
+Remove child that's not there and it doesn't complain???
+
+

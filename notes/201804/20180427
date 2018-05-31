@@ -1,0 +1,69 @@
+
+WITH HARRY'S CODE
+
+write_child_list_prop gives the REPLICATION write targets
+child_list_prop gives the write target for the INITIAL operation
+
+the selected hierarchy for the first vote should be used in the case of accepting a create
+now it is the second conflating the two votes and introducing a time of check time of use issue at the very least
+
+
+
+
+root:passthru
+└── replicate:replication
+    ├── pt-seq-green:passthru
+    │   └── seq-green:random
+    │       ├── pt-green0:passthru
+    │       │   └── green0:random
+    │       │       ├── green0ufs0  <------------- write_child_list: chosen in replCreateChildReplList; child_list: ; received repl 1
+    │       │       └── green0ufs1
+    │       └── pt-green1:passthru
+    │           └── green1:random
+    │               ├── green1ufs0
+    │               └── green1ufs1
+    └── pt-seq-red:passthru
+        └── seq-red:random
+            ├── pt-red0:passthru
+            │   └── red0:random
+            │       ├── red0ufs0
+            │       └── red0ufs1
+            └── pt-red1:passthru
+                └── red1:random
+                    ├── red1ufs0    <------------- write_child_list: chosen by replSelectChild, also replCreateChildList; child_list: chosen by replSelectChild, also replCreateChildList; received repl 0 (initial write?)
+                    └── red1ufs1
+
+alanking@roguespace ~/p/i/testing> iput -R root test.txt a
+alanking@roguespace ~/p/i/testing> ils -l a
+  rods              0 root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0                      5 2018-04-27.09:53 & a
+  rods              1 root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0            5 2018-04-27.09:53 & a
+
+
+Apr 27 09:53:43 pid:6257 NOTICE: Agent process 6703 started for puser=rods and cuser=rods from 152.54.8.76
+Apr 27 09:53:43 pid:6703 NOTICE: writeLine: inString = writing to root
+Apr 27 09:53:43 pid:6703 NOTICE: [replAddSelfToHierarchy]: name:[replicate]
+Apr 27 09:53:43 pid:6703 NOTICE: [replRedirectToChildren]: operation:[CREATE], child:[pt-seq-red], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replRedirectToChildren]: operation:[CREATE], child:[pt-seq-green], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replSelectChild]: first: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replCreateChildReplList]: child_list_prop: [write_child_list]
+Apr 27 09:53:43 pid:6703 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replAddSelfToHierarchy]: name:[replicate]
+Apr 27 09:53:43 pid:6703 NOTICE: [replRedirectToChildren]: operation:[CREATE], child:[pt-seq-red], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replRedirectToChildren]: operation:[CREATE], child:[pt-seq-green], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replSelectChild]: first: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replCreateChildReplList]: child_list_prop: [child_list]
+Apr 27 09:53:43 pid:6703 NOTICE: [replCreateChildReplList]: first hier: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [replCreateChildReplList]: hier: [root;replicate;pt-seq-green;seq-green;pt-green0;green0;green0ufs0], vote:[1.000000]
+Apr 27 09:53:43 pid:6703 NOTICE: [get_selected_hierarchy]: _hier_string: [root;replicate;pt-seq-red;seq-red;pt-red1;red1;red1ufs0]
+Apr 27 09:53:43 pid:6703 NOTICE: [get_selected_hierarchy]: _root_resc: [root]
+Apr 27 09:53:43 pid:6703 NOTICE: readAndProcClientMsg: received disconnect msg from client
+Apr 27 09:53:43 pid:6703 NOTICE: Agent exiting with status = 0
+Apr 27 09:53:43 pid:6257 NOTICE: Agent process 6703 exited with status 0
+
+1. Harry Bug
+2. Jason Bug
+    Go back and understand why we need 2 votes
+    Consider consolidating to one vote
+    There's open, write, and create. Open was being used for open/write/close. We didn't get the write.
+3. Logging

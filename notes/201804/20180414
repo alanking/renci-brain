@@ -1,0 +1,15 @@
+
+We need to probably test this on master before proceeding. Once the changes are in effect, everythign will be affected. Need to make sure it works for the "normal" usage of CI.
+
+Cleaned up iscan again. Pretty much ready for review.
+
+Working on ifsck now.
+
+
+https://github.com/irods/irods/issues/3512
+    Looks like ifsck has been fixed for resource hierarchies. The approach was to add a -R flag to indicate the resource to check.
+    1. Should I go back and do something similar for iscan?
+    2. Is Sanger's issue resolved by using the -R flag?
+        Yes, it should be. Should confirm with higher-ups and/or Sanger before closing.
+
+#3512 appears to solve #3503. This means that we have only 2 or 3 issues left for 4.1.12.

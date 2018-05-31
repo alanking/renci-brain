@@ -1,0 +1,4 @@
+Sanger bi-weekly:
+   Figure out query to find out how many three replica objects there are (how many have too many replicas, a count) 
+   itrim would be very similar, then run query again and find out the pace of getting rid of them
+   trimming things is much faster than adding things

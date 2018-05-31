@@ -1,0 +1,40 @@
+Create a docker image with the following:
+
+Install these:
+    yum install -y epel-release
+    yum -y update
+    yum install -y sudo wget make gcc-c++ rpm-build git python-pip
+
+    yum install -y python-pip
+    yum install -y sudo
+    yum install -y wget
+    yum install -y make
+    yum install -y gcc-c++
+    yum install -y rpm-build
+
+git clone these to /tmp:
+    git clone https://github.com/irods/mungefs
+    git clone https://github.com/irods/irods_python_ci_utilities
+
+cd /tmp && yum install -y epel-release && yum -y update && yum install -y sudo wget make gcc-c++ rpm-build git python-pip && git clone https://github.com/jaking92/mungefs && git clone https://github.com/irods/irods_python_ci_utilities && pip install /tmp/irods_python_ci_utilities
+
+pip install /tmp/irods_python_ci_utilities
+Run mungefs build hook with --output_root_directory=/tmp/mungebld
+
+
+cd /tmp 
+yum install -y epel-release 
+yum -y update 
+yum install -y sudo wget make gcc-c++ rpm-build git python-pip 
+git clone https://github.com/jaking92/mungefs 
+git clone https://github.com/irods/irods_python_ci_utilities 
+pip install /tmp/irods_python_ci_utilities
+
+
+
+Created a Dockerfile that's really bad but at least it works... needs more variables
+
+
+
+Idea: What if resc IDs were hashes instead of a number? Could allow for more resources.
+    Size trade-off

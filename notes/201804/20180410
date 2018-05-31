@@ -1,0 +1,73 @@
+#3436 merged overnight
+4-2-stable cherry-pick passed Jenkins
+4-1-stable port unsure because mungefs build hook isn't working
+    Need to get a ub14-psql VM with 4.1 installed on it and try the build hook
+
+    msg: "Traceback (most recent call last):
+  File \"/home/irodsbuild/.ansible/tmp/ansible-tmp-1523313931.73-127796047689516/irods_clone_git_repo_and_run_python_script\"\
+      , line 1829, in <module>
+\r\n    main()
+\r\n  File \"/home/irodsbuild/.ansible/tmp/ansible-tmp-1523313931.73-127796047689516/irods_clone_git_repo_and_run_python_script\"\
+      , line 1817, in main
+\r\n    rc, stdout, stderr = checkout_git_repo_and_run_build_hook(module.params['git_repository'],\
+      \ module.params['git_commitish'], module.params['python_script'], module.params['passthrough_arguments'])\r\
+      \n  File \"/home/irodsbuild/.ansible/tmp/ansible-tmp-1523313931.73-127796047689516/irods_clone_git_repo_and_run_python_script\"\
+      , line 1804, in checkout_git_repo_and_run_build_hook
+\r\n    return irods_python_ci_utilities.subprocess_get_output(['python',\
+      \ python_script] + passthrough_arguments, cwd=git_checkout_dir, check_rc=True)\r\
+      \n  File \"/usr/lib/python2.7/site-packages/irods_python_ci_utilities/irods_python_ci_utilities.py\"\
+      , line 48, in subprocess_get_output
+\r\n    '''.format(args, kwargs, p.returncode,\
+      \ out, err))
+\r\nRuntimeError: subprocess_get_output() failed
+\r\nargs: (['python',\
+      \ 'irods_consortium_continuous_integration_build_hook.py', '--output_root_directory',\
+      \ '/projects/irods/vsphere-testing/jenkins-job-output/run-script-on-vms/1260',\
+      \ '--built_packages_root_directory', '/projects/irods/vsphere-testing/jenkins-job-output/run-script-on-vms/1257'],)\r\
+      \nkwargs: {'stderr': -1, 'cwd': '/tmp/tmp2s4e8v', 'stdout': -1}
+\r\nreturncode:\
+      \ 1
+\r\nstdout: 
+\r\nstderr: Traceback (most recent call last):
+\r\n  File \"irods_consortium_continuous_integration_build_hook.py\"\ , line 100, in <module>
+\r\n    main()
+\r\n  File \"irods_consortium_continuous_integration_build_hook.py\"\ , line 97, in main
+\r\n    build_mungefs(options.output_root_directory)
+\r\n \
+      \ File \"irods_consortium_continuous_integration_build_hook.py\", line 68, in\ \ build_mungefs
+\r\n    irods_python_ci_utilities.subprocess_get_output(['cmake',\ \ source_directory], check_rc=True, cwd=build_directory)
+\r\n  File \"/usr/lib/python2.7/site-packages/irods_python_ci_utilities/irods_python_ci_utilities.py\"\
+      , line 48, in subprocess_get_output
+\r\n    '''.format(args, kwargs, p.returncode,\
+      \ out, err))
+\r\nRuntimeError: subprocess_get_output() failed
+\r\nargs: (['cmake',\ \ '/tmp/tmp2s4e8v'],)
+\r\nkwargs: {'stderr': -1, 'cwd': '/tmp/irods_mungefs_build_directory9lpgE4',\ \ 'stdout': -1}
+\r\nreturncode: 1
+\r\nstdout: -- Configuring incomplete, errors\ \ occurred!
+\r\n
+\r\nstderr: CMake Error at CMakeLists.txt:3 (find_package):
+\r\n  By not providing \"FindIRODS.cmake\" in CMAKE_MODULE_PATH this project has
+\r\n  asked CMake to find a package configuration file provided by \"IRODS\",\ \ but
+\r\n  CMake did not find one.
+\r\n
+\r\n  Could not find a package configuration\
+      \ file provided by \"IRODS\" with any of
+\r\n  the following names:
+\r\n
+\r\n \
+      \   IRODSConfig.cmake
+\r\n    irods-config.cmake
+\r\n
+\r\n  Add the installation\ \ prefix of \"IRODS\" to CMAKE_PREFIX_PATH or set
+\r\n  \"IRODS_DIR\" to a directory\ \ containing one of the above files.  If \"IRODS\"
+\r\n  provides a separate\ \ development package or SDK, be sure it has been \r\n  installed.
+\r\n
+\r\n
+\r\n\
+      
+\r\n\r\n\r\n\r\n"
+
+
+4.1.x doesn't use cmake, which is why we are getting this error.
+Need to adjust Jenkins to install the 4.2.2 dev and runtime packages so that cmake can configure correctly.

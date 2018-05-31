@@ -1,0 +1,85 @@
+key "LocalZoneSID" not found in map
+    mysql cen7
+
+cherry-pick dworkin's change(s), add requested changes/comments
+
+Also, test_resource_tree is really, really awful
+
+2.2.0
+dnozay released this 3 days ago · 2 commits to master since this release
+https://github.com/xmlrunner/unittest-xml-reporting/releases
+We did it
+
+---
+
+            Page 18:
+            wget https://github.com/irods/irods_training/raw/ugm2018/beginner/training_jpgs.zip
+                404 not found
+                Will be created soon
+
+
+            Page 25, Page 3:
+            Wow, we have a javascript REP... cooooool
+
+            There's also apparently a Go REP... not documented.
+                Could add that for style points at least
+                GoRODS
+
+
+            page 21
+                ils -L /tempZone/home/alice/training jpgs
+                                                    ^--underscore missing? from all of them?
+                Check out [basicstyle=\tiny]
+
+            Page 24:
+            In iRODS version 4.3, the iRODS team hopes to add pluggable data transport as the eighth plugin
+            interface. This will allow hardware vendors to maximize the connections between their machines.
+            iRODS will serve only as the broker for the fast connection.
+
+                Is this true?
+                It's not true! Take it out.
+
+
+            page 26:
+            ROUND ROBIN!!!
+                Torch it.
+
+
+page 3 vs. page 26
+    Exact same explanation of storage resources. Needed?
+    Seems more appropriate on 26 - maybe link to 26 from 3
+
+
+            page 27:
+            For example, the Replication Coordinating Resource weights a vote from a storage resource more
+            heavily if it possesses a local copy. The replication coordinating resource is designed to honor “locality
+            of reference,” and then point the client to the closest data.
+
+                My understanding was that the unixfilesystem resource made that determination...
+
+page 28:
+            Minor note: seeing the tree displays the --ascii version of ilsresc
+
+Adding new storage: starts off talking about rebalance, but there are no files in rods
+    Might help to do an ils to show the effect:
+        ils -L /tempZone/home/alice/training_jpgs
+
+
+page 30:
+Nitpick: You can tell somebody else started writing here because there are suddenly citations :)
+
+            page 35:
+            imeta mod -d grapes.jpg author AJones v:BSmith
+                CAT_INVALID_ARGUMENT
+                Fixed by Dan in 4.2.3
+
+
+            page 38:
+            Links on the text? What does it do?
+            Clicked it and it spins for a while and then does nothing
+            Oh, it's downloading files. Maybe put a comment referring to the fact that we want to download or copy the contents to a file.
+
+            ’ is used instead of ' and this was causing me to have errors.
+
+            page 40:
+            Gave me a lot more stuff than in the example. I think python-exif has been updated

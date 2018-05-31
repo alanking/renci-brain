@@ -1,0 +1,114 @@
+
+alanking@roguespace ~/p/irods> ilsresc
+demoResc:replication
+├── origResc:unixfilesystem
+└── ufs3:unixfilesystem
+PassResc:passthru
+└── HeadResc:replication
+    ├── Rep1:unixfilesystem
+    └── Rep2:unixfilesystem
+alanking@roguespace ~/p/irods> iput blah demofile
+alanking@roguespace ~/p/irods> ils -L
+/tempZone/home/rods:
+  rods              0 demoResc;ufs3           14 2018-03-28.14:04 & demofile
+        generic    /tmp/ufs3vault/home/rods/demofile
+  rods              1 demoResc;origResc           14 2018-03-28.14:04 & demofile
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/demofile
+alanking@roguespace ~/p/irods> iput -f newblah demofile
+alanking@roguespace ~/p/irods> ils -L
+/tempZone/home/rods:
+  rods              0 demoResc;ufs3           16 2018-03-28.14:04 & demofile
+        generic    /tmp/ufs3vault/home/rods/demofile
+  rods              1 demoResc;origResc           16 2018-03-28.14:04 & demofile
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/demofile
+alanking@roguespace ~/p/irods> iput -R PassResc blah passfile
+alanking@roguespace ~/p/irods> ils -L
+/tempZone/home/rods:
+  rods              0 demoResc;ufs3           16 2018-03-28.14:04 & demofile
+        generic    /tmp/ufs3vault/home/rods/demofile
+  rods              1 demoResc;origResc           16 2018-03-28.14:04 & demofile
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/demofile
+  rods              0 PassResc;HeadResc;Rep2           14 2018-03-28.14:05 & passfile
+        generic    /tmp/irods/2/home/rods/passfile
+  rods              1 PassResc;HeadResc;Rep1           14 2018-03-28.14:05 & passfile
+        generic    /tmp/irods/1/home/rods/passfile
+alanking@roguespace ~/p/irods> iput -fR PassResc newblah passfile
+alanking@roguespace ~/p/irods> ils -L
+/tempZone/home/rods:
+  rods              0 demoResc;ufs3           16 2018-03-28.14:04 & demofile
+        generic    /tmp/ufs3vault/home/rods/demofile
+  rods              1 demoResc;origResc           16 2018-03-28.14:04 & demofile
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/demofile
+  rods              0 PassResc;HeadResc;Rep2           16 2018-03-28.14:07 & passfile
+        generic    /tmp/irods/2/home/rods/passfile
+  rods              1 PassResc;HeadResc;Rep1           16 2018-03-28.14:07 & passfile
+        generic    /tmp/irods/1/home/rods/passfile
+
+^
++------- master
+
+iput -f overwrites all the replicas according to the behavior observed above
+
+1. What is the expected behavior? (current requirements)
+    > iput -f does not replicate but should mark the replicas as stale/dirty?
+2. What is the current behavior? (bugs - how does it differ from question 1)
+    > iput -f seems to always replicate and repaves any existing replicas ('&' for all)
+3. What is the behavior that we want to move to? (future requirements)
+    > ???
+
+
+alanking@roguespace ~/p/irods> ilsresc
+demoResc:replication
+├── origResc:unixfilesystem
+└── ufs3:unixfilesystem
+PassResc:passthru
+└── HeadResc:replication
+    ├── Rep1:unixfilesystem
+    └── Rep2:unixfilesystem
+alanking@roguespace ~/p/irods> iput -f newblah
+alanking@roguespace ~/p/irods> ils -L
+/tempZone/home/rods:
+  rods              0 demoResc;origResc           16 2018-03-28.16:01 & newblah
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/newblah
+  rods              1 demoResc;ufs3           16 2018-03-28.16:01 & newblah
+        generic    /tmp/ufs3vault/home/rods/newblah
+alanking@roguespace ~/p/irods> iadmin mkresc ufs4 unixfilesystem roguespace:/tmp/ufs4vault ; iadmin addchildtoresc demoResc ufs4
+Creating resource:
+Name:           "ufs4"
+Type:           "unixfilesystem"
+Host:           "roguespace"
+Path:           "/tmp/ufs4vault"
+Context:        ""
+alanking@roguespace ~/p/irods> iput -f newblah
+alanking@roguespace ~/p/irods> ils -L
+/tempZone/home/rods:
+  rods              0 demoResc;origResc           16 2018-03-28.16:01 & newblah
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/newblah
+  rods              1 demoResc;ufs3           16 2018-03-28.16:01 & newblah
+        generic    /tmp/ufs3vault/home/rods/newblah
+alanking@roguespace ~/p/irods> iput -f blah
+alanking@roguespace ~/p/irods> ils -L
+/tempZone/home/rods:
+  rods              0 demoResc;origResc           14 2018-03-28.16:03 & blah
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/blah
+  rods              1 demoResc;ufs4           14 2018-03-28.16:03 & blah
+        generic    /tmp/ufs4vault/home/rods/blah
+  rods              2 demoResc;ufs3           14 2018-03-28.16:03 & blah
+        generic    /tmp/ufs3vault/home/rods/blah
+  rods              0 demoResc;origResc           16 2018-03-28.16:02 & newblah
+        generic    /home/alanking/projects/irods/non-package-install/var/lib/irods/Vault/home/rods/newblah
+  rods              1 demoResc;ufs3           16 2018-03-28.16:02 & newblah
+        generic    /tmp/ufs3vault/home/rods/newblah
+
+
+
+
+
+See #3541 -- is this related?
+
+
+
+Okay, so here's what happens:
+    iput -f will repave all existing replicas if it exists in teh catalog
+    iput -f will only repave a single replica if it is specified and the others will be marked stale
+    The iput moves the bits and registers the file in teh database... the registration is the trigger for the replication

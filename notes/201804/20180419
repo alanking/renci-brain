@@ -1,0 +1,15 @@
+
+fixed cmake for mungefs
+
+running CI for test_network_pep
+
+iscan fix for 4.1.x seems good, throw into CI
+    Need test for multiple hosts?
+
+fix #3706 - make test_num_repl_policy__ticket_2851 better
+
+
+Note, if you put status=down in a context string for a resource, you MUST put status=up or something without hte string 'down' in it to bring it back up. Seems weird that removing the context wouldn't just reset it
+
+
+Need to build baton again to see if it behaves differently from iput with respect to --wlock

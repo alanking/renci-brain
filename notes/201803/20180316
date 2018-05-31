@@ -1,0 +1,59 @@
+NEW FUNCTIONALITY FOR REPLICATION RESOURCE PLUGIN
+
+    There is a possibility for a race condition for clients writing to the same logical path
+    with a force flag enabled iput. Client 0 begins a put of a large file; zero-length file is
+    registered; data transfer begins, still in progress/not complete. During that transfer, 
+    Client 1 connects with a
+    force flag to the same logical path; since the data object already exists, it is an overwrite;
+    there is no write lock, so the second client begins writing to the same file at the same time.
+    The following approach should prevent the second client from triggering replication on the file
+    close at the completion of the transfer.
+
+    When Client 1 has completed its transfer, other replicas (presumably from Client 0) will not
+    be overwritten, but htey should be marked stale (no &). Any subsequent rebalance will repave
+    all the stale replicas. This is the assumed behavior, needs test.
+
+        Test staleness of replicas at the end. Test should include a rebalance to ensure that they are updated appropriately.
+
+When a file object is FORCE PUT (iput -f) to a replication resource,
+we should be checking to see if the data object has replicas in the tree
+already. If so, we set a flag to indicate that the data object should not
+be replicated. This option is configured via a new context string called
+"skip_replication_on_overwrite".
+
+    - Create new context string: skip_replication_on_overwrite
+
+    if skip_replication_on_overwrite == true:
+        if replica is in this tree:
+            set flag in property map to not replicate to other children
+
+    QUESTION: when should the check for hte replica in this tree happen?
+
+    getDataObjInfo (or factory thing?) and check to see if resc_id is in the
+    leaf bundle for the replication tree. If we get a hit, set the flag to
+    not replicate.
+
+    QUESTION: Does the flag to not replicate already exist in some form? What's it called?
+
+There's a different way to produce the list of things to compare against/leaf bundles/dgetDataObjInfo (factory thing)
+
+-----
+
+There is a possibility for a race condition for clients writing to the same logical path with a force-flag-enabled `iput`. *Example scenario:*
+
+- Client 1 begins a put of a large file to a replication resource
+  - iRODS registers a zero-length file to represent the data object in the catalog
+  - Actual data transfer begins (i.e. not yet complete)
+- Client 2 begins a put to the same logical path with the force flag enabled
+  - Begins an overwrite operation since the data object already exists in the catalog
+  - Since there is no write lock in iRODS, OS begins writing to the same file at the same time
+- Once data transfer completes for Client 1, replication operation is initiated
+- Replication operation will begin when Client 2's transfer completes as well
+
+The goal of this issue is to prevent the replication operation of Client 2 in this scenario. This should be done with the following approach:
+
+When a file object is force-put (`iput -f`) to a replication resource, we should be checking to see if the data object has replicas in that resource tree already. If so, we should set a flag to indicate that the data object should not be replicated.
+
+There should be a context string configuration option for the replication resource to allow for this behavior called `skip_replication_on_overwrite`.
+
+As a result of this new behavior, when Client 2 has completed its transfer, other replicas (presumably from Client 1) will not be overwritten, but they should be marked stale (no `&`). Any subsequent rebalance will repave all the stale replicas. Please include tests for this.
