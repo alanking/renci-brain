@@ -1,5 +1,0 @@
-
-Some problems currently:
-
-    > never checking checksum for some reason (missing verify checksum keyword)
-    > checksum matches even when mungefs is corrupting read data

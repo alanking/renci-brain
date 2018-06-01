@@ -1,3 +1,0 @@
-Running into issue where the log isn't being written to
-Investigate rodsAgent opening log for itself?
-File descriptor limits?

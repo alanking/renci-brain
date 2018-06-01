@@ -1,6 +1,0 @@
-For installing 4-1-stable:
-    mysql library needed (libmysqlclient-dev)
-    libtool needed (libtool-bin)
-    makeinfo needed (texinfo)
-    
-

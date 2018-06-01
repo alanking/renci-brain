@@ -1,6 +1,0 @@
-Waiting to hear back from Sanger about ifsck -N
-Waiting to hear back from Sanger about repl->random for multiple replicas
-
-3904 and 3909 seem to work. Need test for 3909.
-    From Jason: Need test for triggering replication on open/write/close. Need C binary. Look at test for num_repl.
-    Not sure what that means exactly, but I think the suggestion is based on the replication resource holding up across multiple operations.
