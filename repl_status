@@ -1,0 +1,516 @@
+Need to add tests for the following...
+
+4 resources:
+a
+b
+c
+d;e;f
+DEFAULT: a
+d is a passthru, e is a passthru
+
+Map:
+
+- Indicates empty (no replica)
+& Indicates good replica
+X Indicates bad replica
+
+a -> unixfilesystem resource (DEFAULT)
+b -> unixfilesystem resource
+c -> unixfilesystem resource
+# -> Number of the scenario
+= -> Number of identical result on which we can assert, INCLUDING STDOUT/STDERR
+
+Scenarios are on the left, results are on the right
+
+Note:
+    - "Only bad replicas" is technically a valid scenario because data corruption + finalize API (future) 
+
+Base table
+All scenarios for 3 separate standalone resources
+{
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01    -  -  -
+-  -  &  02    -  -  &
+-  -  X  03    -  -  X
+-  &  -  04    -  &  -
+-  &  &  05    -  &  &
+-  &  X  06    -  &  X
+-  X  -  07    -  X  -
+-  X  &  08    -  X  &
+-  X  X  09    -  X  X
+&  -  -  10    &  -  -
+&  -  &  11    &  -  &
+&  -  X  12    &  -  X
+&  &  -  13    &  &  -
+&  &  &  14    &  &  &
+&  &  X  15    &  &  X
+&  X  -  16    &  X  -
+&  X  &  17    &  X  &
+&  X  X  18    &  X  X
+X  -  -  19    X  -  -
+X  -  &  20    X  -  &
+X  -  X  21    X  -  X
+X  &  -  22    X  &  -
+X  &  &  23    X  &  &
+X  &  X  24    X  &  X
+X  X  -  25    X  X  -
+X  X  &  26    X  X  &
+X  X  X  27    X  X  X
+
+}
+
+
+---
+
+irepl -a -r -n -R -S
+
+-U to be ignored from this point forward
+
+---
+
+{
+    irepl -S -n
+    INCOMPATIBLE PARAMETERS
+}
+{
+    irepl -a -R
+    INCOMPATIBLE PARAMETERS
+}
+{
+    irepl -r -S
+    INCOMPATIBLE PARAMETERS
+}
+{
+
+    irepl -R e foo
+
+(e is middle)
+DIRECT_CHILD_ACCESS
+
+}
+{
+
+    irepl -R f foo
+
+(f is leaf)
+DIRECT_CHILD_ACCESS
+
+}
+{
+
+    irepl -R 'd;e' foo
+
+(d is root)
+(e is middle)
+SHOULD NOT work (DIRECT_CHILD_ACCESS) , currently does not work (SYS_RESC_DOES_NOT_EXIST)
+
+}
+{
+
+    irepl -R 'd;e;f' foo
+
+(d is root)
+(e is middle)
+(f is leaf)
+SHOULD NOT work (DIRECT_CHILD_ACCESS) , currently does not work (SYS_RESC_DOES_NOT_EXIST)
+
+}
+{
+
+    irepl -R 'e;f' foo
+
+(e is middle)
+(f is leaf)
+SHOULD NOT work (DIRECT_CHILD_ACCESS) , currently does not work (SYS_RESC_DOES_NOT_EXIST)
+
+}
+{
+
+    irepl -S 'e;f' foo
+
+(e is middle)
+(f is leaf)
+SHOULD NOT work (HIERARCHY_ERROR), currently does not work (SYS_RESC_DOES_NOT_EXIST)
+
+}
+{
+
+    irepl -S a foo
+  (irepl -S a -R a foo)
+
+...where 'a' holds replica 0
+Cases in which 'a' holds a good replica are NO-OPs
+ALL OTHER CASES... error: source == destination
+
+}
+{
+
+    irepl -n 0 foo
+  (irepl -S a -R a foo)
+
+...where 'a' holds replica 0
+Cases in which 'a' holds a good replica are NO-OPs
+ALL OTHER CASES... error: source == destination
+
+}
+{
+
+    irepl foo
+  (irepl -R a foo)
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- &  -  &      0
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 -- &  &  -      0
+-  &  &  05 -- &  &  &      0
+-  &  X  06 -- &  &  X      0
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 -- &  X  &      0
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 -- &  -  -      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  -  &  11 -- &  -  &      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  -  X  12 -- &  -  X      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  &  -  13 -- &  &  -      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  &  &  14 -- &  &  &      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  &  X  15 -- &  &  X      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  X  -  16 -- &  X  -      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  X  &  17 -- &  X  &      NO-OP (Warning: Resolved destination resource already has a good replica)
+&  X  X  18 -- &  X  X      NO-OP (Warning: Resolved destination resource already has a good replica)
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 02 &  -  &      0
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 04 &  &  -      0
+X  &  &  23 05 &  &  &      0
+X  &  X  24 06 &  &  X      0
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 08 &  X  &      0
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+}
+{
+
+    irepl -R b foo
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- -  &  &      0
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 -- -  &  -      NO-OP (Warning: Destination resource already has a good replica)
+-  &  &  05 -- -  &  &      NO-OP (Warning: Destination resource already has a good replica)
+-  &  X  06 -- -  &  X      NO-OP (Warning: Destination resource already has a good replica)
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 02 -  &  &      0
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 -- &  &  -      0
+&  -  &  11 -- &  &  &      0
+&  -  X  12 -- &  &  X      0
+&  &  -  13 -- &  &  -      NO-OP (Warning: Destination resource already has a good replica)
+&  &  &  14 -- &  &  &      NO-OP (Warning: Destination resource already has a good replica)
+&  &  X  15 -- &  &  X      NO-OP (Warning: Destination resource already has a good replica)
+&  X  -  16 10 &  &  -      0
+&  X  &  17 11 &  &  &      0
+&  X  X  18 12 &  &  X      0
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 -- X  &  &      0
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 -- X  &  -      NO-OP (Warning: Destination resource already has a good replica)
+X  &  &  23 -- X  &  &      NO-OP (Warning: Destination resource already has a good replica)
+X  &  X  24 -- X  &  X      NO-OP (Warning: Destination resource already has a good replica)
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 20 X  &  &      0
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+    {
+
+        irepl -R d foo
+
+    (d is root)
+    SHOULD work, currently does work
+    Resolve to a leaf with no good replica
+
+    }
+}
+{
+
+    irepl -S a -R b foo
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- -  -  &      SYS_NO_GOOD_REPLICA
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 -- -  &  -      SYS_NO_GOOD_REPLICA
+-  &  &  05 -- -  &  &      SYS_NO_GOOD_REPLICA
+-  &  X  06 -- -  &  X      SYS_NO_GOOD_REPLICA
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 -- -  X  &      SYS_NO_GOOD_REPLICA
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 -- &  &  -      0
+&  -  &  11 -- &  &  &      0
+&  -  X  12 -- &  &  X      0
+&  &  -  13 -- &  &  -      NO-OP (Warning: Destination resource already has a good replica)
+&  &  &  14 -- &  &  &      NO-OP (Warning: Destination resource already has a good replica)
+&  &  X  15 -- &  &  X      NO-OP (Warning: Destination resource already has a good replica)
+&  X  -  16 10 &  &  -      0
+&  X  &  17 11 &  &  &      0
+&  X  X  18 12 &  &  X      0
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 -- X  -  &      SYS_NO_GOOD_REPLICA
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 -- X  &  -      NO-OP (Warning: Destination resource already has a good replica)
+X  &  &  23 -- X  &  &      NO-OP (Warning: Destination resource already has a good replica)
+X  &  X  24 -- X  &  X      NO-OP (Warning: Destination resource already has a good replica)
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 -- X  X  &      SYS_NO_GOOD_REPLICA
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+    {
+
+        irepl -n 0 -R b foo
+
+       See above
+
+    }
+}
+{
+
+    irepl -S c -R b foo
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- -  &  &      0
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 -- -  &  -      NO-OP (Warning: Destination resource already has a good replica)
+-  &  &  05 -- -  &  &      NO-OP (Warning: Destination resource already has a good replica)
+-  &  X  06 -- -  &  X      NO-OP (Warning: Destination resource already has a good replica)
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 02 -  &  &      0
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 -- &  -  -      SYS_NO_GOOD_REPLICA
+&  -  &  11 -- &  &  &      0
+&  -  X  12 -- &  -  X      SYS_NO_GOOD_REPLICA
+&  &  -  13 -- &  &  -      NO-OP (Warning: Destination resource already has a good replica)
+&  &  &  14 -- &  &  &      NO-OP (Warning: Destination resource already has a good replica)
+&  &  X  15 -- &  &  X      NO-OP (Warning: Destination resource already has a good replica)
+&  X  -  16 -- &  X  -      SYS_NO_GOOD_REPLICA
+&  X  &  17 11 &  &  &      0
+&  X  X  18 -- &  X  X      SYS_NO_GOOD_REPLICA
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 -- X  &  &      0
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 -- X  &  -      NO-OP (Warning: Destination resource already has a good replica)
+X  &  &  23 -- X  &  &      NO-OP (Warning: Destination resource already has a good replica)
+X  &  X  24 -- X  &  X      NO-OP (Warning: Destination resource already has a good replica)
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 20 X  &  &      0
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+    {
+
+        irepl -n 2 -R b foo
+
+       See above
+
+    }
+}
+{
+
+    irepl -S b foo
+(irepl -S b -R a foo)
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- -  -  &      SYS_NO_GOOD_REPLICA
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 -- &  &  -      0
+-  &  &  05 -- &  &  &      0
+-  &  X  06 -- &  &  X      0
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 -- -  X  &      SYS_NO_GOOD_REPLICA
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 -- &  -  -      NO-OP (Warning: Destination resource already has a good replica)
+&  -  &  11 -- &  -  &      NO-OP (Warning: Destination resource already has a good replica)
+&  -  X  12 -- &  -  X      NO-OP (Warning: Destination resource already has a good replica)
+&  &  -  13 -- &  &  -      NO-OP (Warning: Destination resource already has a good replica)
+&  &  &  14 -- &  &  &      NO-OP (Warning: Destination resource already has a good replica)
+&  &  X  15 -- &  &  X      NO-OP (Warning: Destination resource already has a good replica)
+&  X  -  16 -- &  X  -      NO-OP (Warning: Destination resource already has a good replica)
+&  X  &  17 -- &  X  &      NO-OP (Warning: Destination resource already has a good replica)
+&  X  X  18 -- &  X  X      NO-OP (Warning: Destination resource already has a good replica)
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 -- X  -  &      SYS_NO_GOOD_REPLICA
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 04 &  &  -      0
+X  &  &  23 05 &  &  &      0
+X  &  X  24 06 &  &  X      0
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 -- X  X  &      SYS_NO_GOOD_REPLICA
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+    {
+
+        irepl -n 1 foo
+
+         See above
+
+    }
+    {
+
+        irepl -S f foo
+
+    (f is leaf)
+    SHOULD work, currently does work
+    Behaves exactly like targeting a standalone resource (outside of hierarchy)
+
+    }
+    {
+
+        irepl -S 'd;e;f' foo
+
+    (d is root)
+    (e is middle)
+    (f is leaf)
+    SHOULD work, currently does not work (SYS_RESC_DOES_NOT_EXIST)
+    Behaves exactly like targeting a standalone resource (outside of hierarchy)
+
+    }
+    {
+
+        irepl -S d foo
+
+    (d is root)
+    SHOULD work, currently does work
+    Resolves to leaf with a good replica or should none exist, return with same error as though a resource with no good replica was targeted directly
+
+    }
+    {
+
+        irepl -S e foo
+
+    (e is middle)
+    SHOULD work, currently does work
+    Resolves to leaf with a good replica or should none exist, return with same error as though a resource with no good replica was targeted directly
+
+    }
+    {
+
+        irepl -S 'd;e' foo
+
+    (d is root)
+    (e is middle)
+    SHOULD work, currently does not work (SYS_RESC_DOES_NOT_EXIST)
+    Resolves to leaf with a good replica or should none exist, return with same error as though a resource with no good replica was targeted directly
+
+    }
+}
+{
+
+    irepl -a foo
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- &  &  &      0
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 02 &  &  &      0
+-  &  &  05 02 &  &  &      0
+-  &  X  06 02 &  &  &      0
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 02 &  &  &      0
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 02 &  &  &      0
+&  -  &  11 02 &  &  &      0
+&  -  X  12 02 &  &  &      0
+&  &  -  13 02 &  &  &      0
+&  &  &  14 -- &  &  &      NO-OP (no change in timestamps)
+&  &  X  15 02 &  &  &      0
+&  X  -  16 02 &  &  &      0
+&  X  &  17 02 &  &  &      0
+&  X  X  18 02 &  &  &      0
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 02 &  &  &      0
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 02 &  &  &      0
+X  &  &  23 02 &  &  &      0
+X  &  X  24 02 &  &  &      0
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 02 &  &  &      0
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+}
+{
+    irepl -S a -a foo
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- -  -  &      SYS_NO_GOOD_REPLICA
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 -- -  &  -      SYS_NO_GOOD_REPLICA
+-  &  &  05 -- -  &  &      SYS_NO_GOOD_REPLICA
+-  &  X  06 -- -  &  X      SYS_NO_GOOD_REPLICA
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 -- -  X  &      SYS_NO_GOOD_REPLICA
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 -- &  &  &      0
+&  -  &  11 10 &  &  &      0
+&  -  X  12 10 &  &  &      0
+&  &  -  13 10 &  &  &      0
+&  &  &  14 -- &  &  &      NO-OP (no change in timestamps)
+&  &  X  15 10 &  &  &      0
+&  X  -  16 10 &  &  &      0
+&  X  &  17 10 &  &  &      0
+&  X  X  18 10 &  &  &      0
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 -- X  -  &      SYS_NO_GOOD_REPLICA
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 -- X  &  -      SYS_NO_GOOD_REPLICA
+X  &  &  23 -- X  &  &      SYS_NO_GOOD_REPLICA
+X  &  X  24 -- X  &  X      SYS_NO_GOOD_REPLICA
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 -- X  X  &      SYS_NO_GOOD_REPLICA
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+}
+{
+
+    irepl -S b -a foo
+
+a  b  c  #  =  a  b  c
+------------------------
+-  -  -  01 -- -  -  -      SYS_NO_GOOD_REPLICA
+-  -  &  02 -- -  -  &      SYS_NO_GOOD_REPLICA
+-  -  X  03 -- -  -  X      SYS_NO_GOOD_REPLICA
+-  &  -  04 -- &  &  &      0
+-  &  &  05 04 &  &  &      0
+-  &  X  06 04 &  &  &      0
+-  X  -  07 -- -  X  -      SYS_NO_GOOD_REPLICA
+-  X  &  08 -- -  X  &      SYS_NO_GOOD_REPLICA
+-  X  X  09 -- -  X  X      SYS_NO_GOOD_REPLICA
+&  -  -  10 -- &  -  -      SYS_NO_GOOD_REPLICA
+&  -  &  11 -- &  -  &      SYS_NO_GOOD_REPLICA
+&  -  X  12 -- &  -  X      SYS_NO_GOOD_REPLICA
+&  &  -  13 04 &  &  &      0
+&  &  &  14 -- &  &  &      NO-OP (no change in timestamps)
+&  &  X  15 04 &  &  &      0
+&  X  -  16 -- &  X  -      SYS_NO_GOOD_REPLICA
+&  X  &  17 -- &  X  &      SYS_NO_GOOD_REPLICA
+&  X  X  18 -- &  X  X      SYS_NO_GOOD_REPLICA
+X  -  -  19 -- X  -  -      SYS_NO_GOOD_REPLICA
+X  -  &  20 -- X  -  &      SYS_NO_GOOD_REPLICA
+X  -  X  21 -- X  -  X      SYS_NO_GOOD_REPLICA
+X  &  -  22 04 &  &  &      0
+X  &  &  23 04 &  &  &      0
+X  &  X  24 04 &  &  &      0
+X  X  -  25 -- X  X  -      SYS_NO_GOOD_REPLICA
+X  X  &  26 -- X  X  &      SYS_NO_GOOD_REPLICA
+X  X  X  27 -- X  X  X      SYS_NO_GOOD_REPLICA
+
+}
